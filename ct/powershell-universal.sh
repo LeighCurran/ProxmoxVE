@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/LeighCurran/ProxmoxVE/refs/heads/Add-Powershell-Universal/misc/build.func
 # Copyright (c) 2021-2025 community-scripts ORG
 # Author: Leigh Curran
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
