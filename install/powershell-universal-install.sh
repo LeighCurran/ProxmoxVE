@@ -99,7 +99,7 @@ customize
 
 # Cleanup
 msg_info "Cleaning up"
-rm -f /tmp/Universal.linux-x64."${RELEASE}".zip
+rm -f $PSU_FILE
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
 msg_ok "Cleaned"
