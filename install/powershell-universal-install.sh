@@ -19,64 +19,66 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y \
   curl \
   wget \
-  unzip \
-  apt-transport-https \
-  software-properties-common
+  unzip 
 msg_ok "Installed Dependencies"
 
 # Install PowerShell
-msg_info "Installing PowerShell"
-source /etc/os-release
-wget -q "https://packages.microsoft.com/config/debian/$VERSION_ID/packages-microsoft-prod.deb"
-$STD dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-$STD apt-get update
-$STD apt-get install -y powershell
-msg_ok "Installed PowerShell"
+# These are used to derive the download URL
+PSU_VERSION="5.6.10" # Change this to the current version
+PSU_ARCH="arm64" # Change this to your desired architecture
+PSU_FILE="Universal.linux-${PSU_ARCH}.${PSU_VERSION}.zip"
+PSU_URL="https://imsreleases.blob.core.windows.net/universal/production/${PSU_VERSION}/${PSU_FILE}"
 
-# Get Latest PowerShell Universal Version
-msg_info "Getting Latest Version"
-RELEASE=$(curl -fsSL https://ironmansoftware.com/release/powershell-universal | grep -oP '(?<=<td>)[0-9]+\.[0-9]+\.[0-9]+(?=</td>)' | head -1)
-msg_ok "Version: ${RELEASE}"
+# These are used for installing PowerShell Universal
+# If you'd like to use a different path, change this
+PSU_PATH="/opt/psuniversal"
+PSU_EXEC="${PSU_PATH}/Universal.Server"
 
-# Download and Install PowerShell Universal
-msg_info "Installing PowerShell Universal v${RELEASE}"
-cd /tmp || exit
-wget -q "https://imsreleases.blob.core.windows.net/universal/production/${RELEASE}/Universal.linux-x64.${RELEASE}.zip"
-mkdir -p /opt/psuniversal
-unzip -o -qq "Universal.linux-x64.${RELEASE}.zip" -d /opt/psuniversal
-chmod +x /opt/psuniversal/Universal.Server
-echo "${RELEASE}" >/opt/psuniversal_version.txt
-msg_ok "Installed PowerShell Universal v${RELEASE}"
+# These are for installing it as a service
+PSU_SERVICE="psuniversal"
+PSU_USER="psuniversal"
 
-# Create Service User
-msg_info "Creating Service User"
-useradd -r -s /bin/bash -d /home/psuniversal -m psuniversal
-chown -R psuniversal:psuniversal /opt/psuniversal
-msg_ok "Created Service User"
+msg_info "Creating $PSU_PATH and granting access to $USER"
+sudo mkdir $PSU_PATH
+sudo setfacl -m "u:${USER}:rwx" $PSU_PATH
 
-# Creating Service
-msg_info "Creating Service"
-cat <<EOF >/etc/systemd/system/psuniversal.service
+msg_info "Creating user $PSU_USER and making it the owner of $PSU_PATH"
+sudo useradd $PSU_USER -m
+sudo chown $PSU_USER -R $PSU_PATH
+
+msg_info "Downloading PowerShell Universal $PSU_VERSION ($PSU_ARCH)"
+wget -q $PSU_URL -O $PSU_FILE
+
+msg_info "Extracting $PSU_FILE to $PSU_PATH"
+unzip -o -qq $PSU_FILE -d $PSU_PATH
+
+msg_info "Make $PSU_EXEC executable"
+sudo chmod +x $PSU_EXEC
+
+msg_info "Creating service configuration"
+cat <<EOF > ~/$PSU_SERVICE.service
 [Unit]
 Description=PowerShell Universal
-After=network.target
-
 [Service]
-Type=simple
-User=psuniversal
-WorkingDirectory=/opt/psuniversal
-ExecStart=/opt/psuniversal/Universal.Server
+ExecStart=$PSU_EXEC
 SyslogIdentifier=psuniversal
+User=$PSU_USER
 Restart=always
-RestartSec=10
-
+RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
-systemctl daemon-reload
-systemctl enable -q --now psuniversal
-msg_ok "Created Service"
+
+msg_info  "Creating and starting service"
+sudo cp -f ~/$PSU_SERVICE.service /etc/systemd/system
+sudo systemctl daemon-reload
+sudo systemctl enable $PSU_SERVICE
+sudo systemctl start $PSU_SERVICE
+sudo systemctl status $PSU_SERVICE --no-pager
+
+# If you don't use UFW, you can comment this out
+#msg_info  "Allow port 5000/tcp"
+#sudo ufw allow 5000/tcp
 
 # Create Credentials File
 msg_info "Storing Credentials"
