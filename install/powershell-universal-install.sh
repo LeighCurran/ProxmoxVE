@@ -19,13 +19,14 @@ msg_info "Installing Dependencies"
 $STD apt-get install -y \
   curl \
   wget \
-  unzip 
+  unzip \
+  acl
 msg_ok "Installed Dependencies"
 
 # Install PowerShell
 # These are used to derive the download URL
 PSU_VERSION="5.6.10" # Change this to the current version
-PSU_ARCH="arm64" # Change this to your desired architecture
+PSU_ARCH="x64" # Change this to your desired architecture
 PSU_FILE="Universal.linux-${PSU_ARCH}.${PSU_VERSION}.zip"
 PSU_URL="https://imsreleases.blob.core.windows.net/universal/production/${PSU_VERSION}/${PSU_FILE}"
 
@@ -39,12 +40,12 @@ PSU_SERVICE="psuniversal"
 PSU_USER="psuniversal"
 
 msg_info "Creating $PSU_PATH and granting access to $USER"
-sudo mkdir $PSU_PATH
-sudo setfacl -m "u:${USER}:rwx" $PSU_PATH
+mkdir $PSU_PATH
+setfacl -m "u:${USER}:rwx" $PSU_PATH
 
 msg_info "Creating user $PSU_USER and making it the owner of $PSU_PATH"
-sudo useradd $PSU_USER -m
-sudo chown $PSU_USER -R $PSU_PATH
+useradd $PSU_USER -m
+chown $PSU_USER -R $PSU_PATH
 
 msg_info "Downloading PowerShell Universal $PSU_VERSION ($PSU_ARCH)"
 wget -q $PSU_URL -O $PSU_FILE
@@ -53,7 +54,7 @@ msg_info "Extracting $PSU_FILE to $PSU_PATH"
 unzip -o -qq $PSU_FILE -d $PSU_PATH
 
 msg_info "Make $PSU_EXEC executable"
-sudo chmod +x $PSU_EXEC
+chmod +x $PSU_EXEC
 
 msg_info "Creating service configuration"
 cat <<EOF > ~/$PSU_SERVICE.service
@@ -70,15 +71,15 @@ WantedBy=multi-user.target
 EOF
 
 msg_info  "Creating and starting service"
-sudo cp -f ~/$PSU_SERVICE.service /etc/systemd/system
-sudo systemctl daemon-reload
-sudo systemctl enable $PSU_SERVICE
-sudo systemctl start $PSU_SERVICE
-sudo systemctl status $PSU_SERVICE --no-pager
+cp -f ~/$PSU_SERVICE.service /etc/systemd/system
+systemctl daemon-reload
+systemctl enable $PSU_SERVICE
+systemctl start $PSU_SERVICE
+systemctl status $PSU_SERVICE --no-pager
 
 # If you don't use UFW, you can comment this out
 #msg_info  "Allow port 5000/tcp"
-#sudo ufw allow 5000/tcp
+#ufw allow 5000/tcp
 
 # Create Credentials File
 msg_info "Storing Credentials"
