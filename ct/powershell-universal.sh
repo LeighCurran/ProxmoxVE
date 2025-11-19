@@ -39,58 +39,77 @@ function update_script() {
     exit
   fi
   
-  PSU_VERSION="5.6.10" # Change this to the current version
+  # Crawling the new version and checking whether an update is required
+  #RELEASE=$(curl -fsSL [RELEASE_URL] | [PARSE_RELEASE_COMMAND])
+  #if [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]] || [[ ! -f /opt/${APP}_version.txt ]]; then
+
+  RELEASE="5.6.10"
+
+  #PSU_VERSION="5.6.10" # Change this to the current version
 
   # Check if update is needed
-  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${PSU_VERSION}" != "$(cat /opt/${APP}_version.txt)" ]]; then
-    msg_info "Updating ${APP} to v${PSU_VERSION}"
+  if [[ ! -f /opt/${APP}_version.txt ]] || [[ "${RELEASE}" != "$(cat /opt/${APP}_version.txt)" ]]; then
+    msg_info "Updating ${APP} to v${RELEASE}"
     
     # Stop the service
+    msg_info "Stopping $APP"
     systemctl stop psuniversal &>/dev/null
+    msg_ok "Stopped $APP"
     
     # Backup configuration and data
     msg_info "Backing up configuration"
     mkdir -p /tmp/psu-backup
     cp -r /opt/psuniversal/*.config /tmp/psu-backup/ 2>/dev/null || true
     cp -r /opt/psuniversal/appsettings.json /tmp/psu-backup/ 2>/dev/null || true
+    msg_ok "Configuration backed up"
     
     # Download new version
     PSU_ARCH="x64" # Change this to your desired architecture
-    PSU_FILE="Universal.linux-${PSU_ARCH}.${PSU_VERSION}.zip"
-    PSU_URL="https://imsreleases.blob.core.windows.net/universal/production/${PSU_VERSION}/${PSU_FILE}"
+    PSU_FILE="Universal.linux-${PSU_ARCH}.${RELEASE}.zip"
+    PSU_URL="https://imsreleases.blob.core.windows.net/universal/production/${RELEASE}/${PSU_FILE}"
     
-    msg_info "Downloading PowerShell Universal v${PSU_VERSION}"
+    msg_info "Downloading ${APP} v${RELEASE}"
     wget -q "$PSU_URL" -O /tmp/"$PSU_FILE"
-    
+    msg_ok "Downloaded ${APP}"
+
     # Remove old installation but preserve data
     msg_info "Removing old installation"
     rm -rf /opt/psuniversal/*
+    msg_ok "Removed old installation"
     
     # Extract new version
     msg_info "Extracting new version"
     unzip -o -qq /tmp/"$PSU_FILE" -d /opt/psuniversal
+    msg_ok "Extracted ${APP}"
     
     # Restore configuration
     msg_info "Restoring configuration"
     cp -r /tmp/psu-backup/* /opt/psuniversal/ 2>/dev/null || true
+    msg_ok "Configuration restored"
     
     # Set permissions
+    msg_info "Setting Permissions"
     chmod +x /opt/psuniversal/Universal.Server
     chown -R psuniversal:psuniversal /opt/psuniversal
-    
+    msg_ok "Permissions set"
+
     # Start service
+    msg_info "Starting $APP"
     systemctl start psuniversal &>/dev/null
-    
+    msg_ok "Started $APP"
+
     # Cleanup
+    msg_info "Cleaning Up"
     rm -rf /tmp/"$PSU_FILE"
     rm -rf /tmp/psu-backup
+    msg_ok "Cleanup Completed"
     
     # Save version
-    echo "${PSU_VERSION}" > /opt/${APP}_version.txt
-    
+    echo "${RELEASE}" > /opt/${APP}_version.txt 
     msg_ok "Updated ${APP} to v${RELEASE}"
+    msg_ok "Update Successful"
   else
-    msg_ok "No update required. ${APP} is already at v${PSU_VERSION}"
+    msg_ok "No update required. ${APP} is already at v${RELEASE}"
   fi
   
   exit

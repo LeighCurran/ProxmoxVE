@@ -39,33 +39,39 @@ PSU_EXEC="${PSU_PATH}/Universal.Server"
 PSU_SERVICE="psuniversal"
 PSU_USER="psuniversal"
 
-msg_info "Creating $PSU_PATH and granting access to $USER"
-mkdir $PSU_PATH
-setfacl -m "u:${USER}:rwx" $PSU_PATH
+#msg_info "Creating $PSU_PATH and granting access to $USER"
+#mkdir $PSU_PATH
+#setfacl -m "u:${USER}:rwx" $PSU_PATH
+#msg_ok "Created $PSU_PATH"
 
 msg_info "Creating user $PSU_USER and making it the owner of $PSU_PATH"
 useradd $PSU_USER -m
 chown $PSU_USER -R $PSU_PATH
+msg_ok "Created user $PSU_USER"
 
 msg_info "Downloading PowerShell Universal $PSU_VERSION ($PSU_ARCH)"
 wget -q $PSU_URL -O $PSU_FILE
+msg_ok "PowerShell Universal $PSU_VERSION downloaded"
 
 msg_info "Extracting $PSU_FILE to $PSU_PATH"
-unzip -o -qq $PSU_FILE -d $PSU_PATH
+unzip -o -q $PSU_FILE -d $PSU_PATH
 
 msg_info "Make $PSU_EXEC executable"
 chmod +x $PSU_EXEC
 
 msg_info "Creating service configuration"
-cat <<EOF > ~/$PSU_SERVICE.service
+cat <<EOF > /etc/systemd/system/$PSU_SERVICE.service
 [Unit]
 Description=PowerShell Universal
+
 [Service]
 ExecStart=$PSU_EXEC
 SyslogIdentifier=psuniversal
 User=$PSU_USER
 Restart=always
 RestartSec=5
+WorkingDirectory=$PSU_PATH
+
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -73,16 +79,15 @@ EOF
 msg_info  "Creating and starting service"
 cp -f ~/$PSU_SERVICE.service /etc/systemd/system
 systemctl daemon-reload
-systemctl enable $PSU_SERVICE
-systemctl start $PSU_SERVICE
-systemctl status $PSU_SERVICE --no-pager
+systemctl enable -q --now $PSU_SERVICE
+#systemctl status $PSU_SERVICE --no-pager
 
 # If you don't use UFW, you can comment this out
 #msg_info  "Allow port 5000/tcp"
 #ufw allow 5000/tcp
 
 # Create Credentials File
-msg_info "Storing Credentials"
+#msg_info "Storing Credentials"
 {
   echo "PowerShell Universal Credentials"
   echo ""
