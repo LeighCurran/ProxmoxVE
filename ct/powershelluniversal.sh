@@ -10,7 +10,7 @@ source <(curl -s https://raw.githubusercontent.com/LeighCurran/ProxmoxVE/main/mi
 # source <(curl -s https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
 
 # App Default Values
-APP="Powershell-Universal"
+APP="PowershellUniversal"
 var_tags="${var_tags:-automation;powershell}"
 var_cpu="${var_cpu:-2}" 
 var_ram="${var_ram:-2048}"
@@ -64,7 +64,7 @@ function update_script() {
     msg_ok "Configuration backed up"
     
     # Download new version
-    PSU_ARCH="x64" # Change this to your desired architecture
+    PSU_ARCH="x64"
     PSU_FILE="Universal.linux-${PSU_ARCH}.${RELEASE}.zip"
     PSU_URL="https://imsreleases.blob.core.windows.net/universal/production/${RELEASE}/${PSU_FILE}"
     
@@ -114,6 +114,8 @@ function update_script() {
   
   exit
 }
+
+REPO_URL="https://raw.githubusercontent.com/LeighCurran/ProxmoxVE/Add-Powershell-Universal"
 
 start
 build_container
